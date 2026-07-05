@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { GoalCard } from './GoalCard';
-import { createClient } from '@/lib/supabase/client';
 import type { Goal, MonthlyPlan, WeeklyPlan, Task } from '@/types';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,51 +22,30 @@ type GoalWithPlans = Goal & {
 };
 
 export function GoalTree() {
-  const supabase = createClient();
   const [goals, setGoals] = useState<GoalWithPlans[]>([]);
   const [loading, setLoading] = useState(true);
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const [newGoalDesc, setNewGoalDesc] = useState('');
 
-  useEffect(() => {
-    fetchGoals();
-  }, []);
-
-  const fetchGoals = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('goals')
-      .select(
-        `
-          *,
-          monthly_plans(
-            *,
-            weekly_plans(
-              *,
-              tasks(*)
-            )
-          )
-        `
-      )
-      .eq('user_id', user.id)
-      .order('year', { ascending: false })
-      .order('quarter', { ascending: false })
-      .order('sort_order');
-
-    if (error) {
-      console.error('Failed to fetch goals:', error.message);
-    } else if (data) {
-      setGoals(data as unknown as GoalWithPlans[]);
+  const fetchGoals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/goals');
+      if (res.ok) {
+        const data = await res.json();
+        setGoals(data as GoalWithPlans[]);
+      } else {
+        console.error('Failed to fetch goals');
+      }
+    } catch (err) {
+      console.error('Failed to fetch goals:', err);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
 
   const createGoal = async () => {
     const now = new Date();

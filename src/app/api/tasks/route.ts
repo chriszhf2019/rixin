@@ -1,5 +1,21 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+const CreateTaskSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().nullable().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  status: z.enum(['todo', 'in_progress', 'done', 'cancelled']).default('todo'),
+  due_date: z.string().nullable().optional(),
+  weekly_plan_id: z.string().uuid().nullable().optional(),
+  assignee_id: z.string().uuid().nullable().optional(),
+  sort_order: z.number().int().default(0),
+  subtasks: z.array(z.object({
+    title: z.string().min(1),
+    sort_order: z.number().int().default(0),
+  })).optional(),
+});
 
 export async function GET(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -35,12 +51,44 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
-  const { data, error } = await supabase
+  const parsed = CreateTaskSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid input', issues: parsed.error.issues }, { status: 400 });
+  }
+
+  const { subtasks, ...taskData } = parsed.data;
+
+  const { data: task, error: taskError } = await supabase
     .from('tasks')
-    .insert({ ...body, user_id: user.id })
+    .insert({ ...taskData, user_id: user.id })
     .select('*, subtasks(*), tags(*)')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+  if (taskError) return NextResponse.json({ error: taskError.message }, { status: 500 });
+
+  if (subtasks && subtasks.length > 0) {
+    const { error: subtaskError } = await supabase
+      .from('subtasks')
+      .insert(
+        subtasks.map((st, i) => ({
+          task_id: task.id,
+          title: st.title,
+          sort_order: st.sort_order ?? i,
+        }))
+      );
+
+    if (subtaskError) {
+      return NextResponse.json({ error: subtaskError.message }, { status: 500 });
+    }
+
+    const { data: taskWithSubtasks } = await supabase
+      .from('tasks')
+      .select('*, subtasks(*), tags(*)')
+      .eq('id', task.id)
+      .single();
+
+    return NextResponse.json(taskWithSubtasks, { status: 201 });
+  }
+
+  return NextResponse.json(task, { status: 201 });
 }

@@ -76,7 +76,7 @@ export function QuickAdd({ onTaskCreated }: QuickAddProps) {
     }
   }, []);
 
-  const confirmCreate = async (data: { title: string; description?: string | null; priority?: string; due_date?: string | null }) => {
+  const confirmCreate = async (data: { title: string; description?: string | null; priority?: string; due_date?: string | null; subtasks?: { title: string; sort_order: number }[] }) => {
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -92,11 +92,15 @@ export function QuickAdd({ onTaskCreated }: QuickAddProps) {
 
   const confirmTask = async () => {
     if (!parsedResult) return;
+    const subtasks = editingSubtasks
+      .filter(s => s.trim())
+      .map((title, i) => ({ title, sort_order: i }));
     await confirmCreate({
       title: parsedResult.title,
       description: parsedResult.description,
       priority: parsedResult.priority,
       due_date: parsedResult.due_date,
+      subtasks: subtasks.length > 0 ? subtasks : undefined,
     });
     reset();
   };

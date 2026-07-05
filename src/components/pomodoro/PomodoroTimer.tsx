@@ -123,10 +123,11 @@ export function PomodoroTimer() {
         if (prev <= 1) {
           clearTimer();
           setRunning(false);
-          // Session completed
-          setSessionId(null);
+          // Session completed — save to DB
+          if (sessionId) {
+            endSession(true);
+          }
           if (mode === 'focus') {
-            setTodayFocus(p => p + FOCUS_TIME);
             toast.success('专注时间到！休息一下吧');
             setMode('break');
             setTimeLeft(BREAK_TIME * 60);
@@ -141,7 +142,7 @@ export function PomodoroTimer() {
       });
     }, 1000);
     return clearTimer;
-  }, [running, mode]);
+  }, [running, mode, sessionId, endSession]);
 
   const skipBreak = () => {
     clearTimer();

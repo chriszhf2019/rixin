@@ -47,8 +47,8 @@ export function KanbanBoard() {
       .select('*, subtasks(*), assignee:profiles!assignee_id(id, name, avatar_url)')
       .or(`user_id.eq.${user.id},assignee_id.eq.${user.id}`)
       .neq('status', 'cancelled')
-      .order('priority', { ascending: false })
-      .order('updated_at', { ascending: false });
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
 
     if (data) setTasks(data as unknown as Task[]);
     setLoading(false);
@@ -64,33 +64,70 @@ export function KanbanBoard() {
     if (task) setActiveTask(task);
   };
 
+  const computeNewSortOrder = (
+    allTasks: Task[],
+    taskId: string,
+    targetStatus: Task['status'],
+    overTaskId: string | null
+  ): number => {
+    const columnTasks = allTasks
+      .filter(t => t.status === targetStatus && t.id !== taskId)
+      .sort((a, b) => a.sort_order - b.sort_order);
+
+    if (!overTaskId) {
+      return columnTasks.length > 0 ? columnTasks[columnTasks.length - 1].sort_order + 1 : 0;
+    }
+
+    const overIndex = columnTasks.findIndex(t => t.id === overTaskId);
+    if (overIndex === -1) {
+      return columnTasks.length > 0 ? columnTasks[columnTasks.length - 1].sort_order + 1 : 0;
+    }
+
+    if (overIndex === 0) {
+      return columnTasks[0].sort_order - 1;
+    }
+
+    const prev = columnTasks[overIndex - 1];
+    const next = columnTasks[overIndex];
+    return (prev.sort_order + next.sort_order) / 2;
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveTask(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
     const taskId = active.id as string;
-    const overTask = tasks.find(t => t.id === over.id);
-    if (!overTask) return;
-
-    const newStatus = overTask.status;
     const task = tasks.find(t => t.id === taskId);
-    if (!task || task.status === newStatus) return;
+    if (!task) return;
+
+    const overTask = tasks.find(t => t.id === over.id);
+    const newStatus = overTask ? overTask.status : task.status;
+
+    const newSortOrder = computeNewSortOrder(tasks, taskId, newStatus as Task['status'], overTask?.id ?? null);
 
     // Optimistic update
+    const prevTasks = [...tasks];
     setTasks(prev =>
-      prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t)
+      prev.map(t =>
+        t.id === taskId
+          ? { ...t, status: newStatus as Task['status'], sort_order: newSortOrder }
+          : t
+      )
     );
 
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({
+        status: newStatus,
+        sort_order: newSortOrder,
+      }),
     });
 
     if (!res.ok) {
       toast.error('更新失败');
-      fetchTasks(); // Revert
+      setTasks(prevTasks); // Revert
     }
   };
 
@@ -103,7 +140,6 @@ export function KanbanBoard() {
     if (!activeTask || !overTask) return;
     if (activeTask.status === overTask.status) return;
 
-    // Move task between columns visually during drag
     setTasks(prev =>
       prev.map(t =>
         t.id === activeTask.id ? { ...t, status: overTask.status as Task['status'] } : t

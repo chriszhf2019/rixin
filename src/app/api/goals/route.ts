@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+const CreateGoalSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().nullable().optional(),
+  quarter: z.number().int().min(1).max(4),
+  year: z.number().int().min(2000).max(2100),
+  status: z.enum(['active', 'completed', 'cancelled']).default('active'),
+  sort_order: z.number().int().default(0),
+});
 
 export async function GET() {
   const supabase = await createServerSupabaseClient();
@@ -33,9 +43,14 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
+  const parsed = CreateGoalSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid input', issues: parsed.error.issues }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from('goals')
-    .insert({ ...body, user_id: user.id })
+    .insert({ ...parsed.data, user_id: user.id })
     .select()
     .single();
 

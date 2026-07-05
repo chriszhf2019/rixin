@@ -46,10 +46,9 @@ export async function PUT(
 
   const updateData: Record<string, unknown> = { ...parsed.data };
 
-  // If marking as done, set completed_at; if undoing, clear it
   if (parsed.data.status === 'done') {
     updateData.completed_at = parsed.data.completed_at ?? new Date().toISOString();
-  } else if (parsed.data.status && parsed.data.status !== 'done') {
+  } else if (parsed.data.status) {
     updateData.completed_at = null;
   }
 

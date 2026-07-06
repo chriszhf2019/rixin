@@ -1,0 +1,40 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+
+spawn ssh ubuntu@118.25.141.173
+
+expect {
+    "password:" {
+        send "Chris@1989\r"
+    }
+}
+
+expect "$"
+send "cd /var/www/rixin\r"
+expect "$"
+
+# 修改 tsconfig.json 排除 supabase/functions
+send "sed -i 's/\"exclude\": \\[\"node_modules\"\\]/\"exclude\": [\"node_modules\", \"supabase\\/functions\"]/' tsconfig.json\r"
+expect "$"
+
+# 安装缺失依赖
+send "npm install @radix-ui/react-progress@^1.1.2 --save\r"
+expect {
+    "added" { }
+    "up to date" { }
+    timeout { }
+}
+expect "$"
+
+# 构建
+send "npm run build\r"
+expect {
+    "Compiled successfully" { }
+    "compiled successfully" { }
+    timeout { }
+}
+expect "$"
+
+send "exit\r"
+expect eof

@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronDown, ChevronRight, Target } from 'lucide-react';
 import { useState } from 'react';
 import { MonthlyPlanCard } from './MonthlyPlanCard';
-import type { Goal, MonthlyPlan } from '@/types';
+import type { Goal, MonthlyPlan, WeeklyPlan, Task } from '@/types';
 
 type GoalWithPlans = Goal & {
   monthly_plans?: (MonthlyPlan & {

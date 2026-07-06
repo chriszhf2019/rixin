@@ -1,0 +1,117 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+
+spawn ssh root@118.25.141.173
+expect {
+    "password:" {
+        send "Chris@1989\r"
+    }
+    timeout {
+        puts "SSH connection timeout"
+        exit 1
+    }
+}
+
+expect "~#"
+send "cd /var/www/rixin\r"
+expect "/var/www/rixin#"
+
+# 修改 tsconfig.json 排除 supabase/functions
+send "cat > tsconfig.json << 'TSJSON'\r"
+expect ">"
+send "{\r"
+expect ">"
+send "  \"compilerOptions\": {\r"
+expect ">"
+send "    \"target\": \"ES2017\",\r"
+expect ">"
+send "    \"lib\": [\"dom\", \"dom.iterable\", \"esnext\"],\r"
+expect ">"
+send "    \"allowJs\": true,\r"
+expect ">"
+send "    \"skipLibCheck\": true,\r"
+expect ">"
+send "    \"strict\": true,\r"
+expect ">"
+send "    \"noEmit\": true,\r"
+expect ">"
+send "    \"esModuleInterop\": true,\r"
+expect ">"
+send "    \"module\": \"esnext\",\r"
+expect ">"
+send "    \"moduleResolution\": \"bundler\",\r"
+expect ">"
+send "    \"resolveJsonModule\": true,\r"
+expect ">"
+send "    \"isolatedModules\": true,\r"
+expect ">"
+send "    \"jsx\": \"preserve\",\r"
+expect ">"
+send "    \"incremental\": true,\r"
+expect ">"
+send "    \"plugins\": [\r"
+expect ">"
+send "      {\r"
+expect ">"
+send "        \"name\": \"next\"\r"
+expect ">"
+send "      }\r"
+expect ">"
+send "    ],\r"
+expect ">"
+send "    \"paths\": {\r"
+expect ">"
+send "      \"@/*\": [\"./src/*\"]\r"
+expect ">"
+send "    }\r"
+expect ">"
+send "  },\r"
+expect ">"
+send "  \"include\": [\"next-env.d.ts\", \"**/*.ts\", \"**/*.tsx\", \".next/types/**/*.ts\"],\r"
+expect ">"
+send "  \"exclude\": [\"node_modules\", \"supabase/functions\"]\r"
+expect ">"
+send "}\r"
+expect ">"
+send "TSJSON\r"
+
+expect "/var/www/rixin#"
+
+# 安装缺失的依赖
+send "npm install @radix-ui/react-progress@^1.1.2 --save\r"
+expect {
+    "added" {
+        # 继续等待
+    }
+    timeout {
+        puts "npm install timeout"
+        exit 1
+    }
+}
+
+expect "/var/www/rixin#"
+
+# 清理并重新构建
+send "npm run build 2>&1\r"
+expect {
+    "compiled successfully" {
+        puts "\n=== BUILD SUCCESS ==="
+    }
+    "Compiled successfully" {
+        puts "\n=== BUILD SUCCESS ==="
+    }
+    timeout {
+        puts "\n=== BUILD TIMEOUT ==="
+    }
+    -re "error|Error|failed" {
+        puts "\n=== BUILD ERROR ==="
+    }
+}
+
+expect "/var/www/rixin#"
+send "echo 'BUILD_STATUS:' \$?\r"
+expect "/var/www/rixin#"
+
+send "exit\r"
+expect eof

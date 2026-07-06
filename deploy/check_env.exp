@@ -1,0 +1,15 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "cat /var/www/rixin/.env.local | head -20\r"
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

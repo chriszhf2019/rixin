@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+
+set timeout 180
+
+# 上传脚本
+spawn scp /Volumes/z/202606/Rixin/deploy/configure_https.sh ubuntu@118.25.141.173:/tmp/
+expect "password:"
+send "Chris@1989\r"
+expect eof
+
+# SSH 执行
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "sudo bash /tmp/configure_https.sh 2>&1\r"
+
+expect {
+    "HTTPS configured" { }
+    "Successfully received certificate" { }
+    timeout { }
+}
+
+expect -re {\$ |# }
+send "sudo nginx -T 2>&1 | grep -A20 'server_name rixin.velolabs.top' | head -25\r"
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

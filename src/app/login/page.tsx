@@ -6,12 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [mode, setMode] = useState<'magiclink' | 'password'>('magiclink');
   const supabase = createClient();
+  const router = useRouter();
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +30,22 @@ export default function LoginPage() {
       return;
     }
     setSent(true);
+  };
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    router.push('/today');
+    router.refresh();
   };
 
   const handleGoogleLogin = async () => {
@@ -65,18 +85,47 @@ export default function LoginPage() {
           <CardDescription>登录以开始你的日新之旅</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleMagicLink} className="space-y-3">
-            <Input
-              type="email"
-              placeholder="输入邮箱地址"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '发送中...' : '发送魔法链接'}
-            </Button>
-          </form>
+          {mode === 'magiclink' ? (
+            <form onSubmit={handleMagicLink} className="space-y-3">
+              <Input
+                type="email"
+                placeholder="输入邮箱地址"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? '发送中...' : '发送魔法链接'}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordLogin} className="space-y-3">
+              <Input
+                type="email"
+                placeholder="输入邮箱地址"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="输入密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? '登录中...' : '登录'}
+              </Button>
+            </form>
+          )}
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground w-full text-center"
+            onClick={() => setMode(mode === 'magiclink' ? 'password' : 'magiclink')}
+          >
+            {mode === 'magiclink' ? '使用密码登录' : '使用魔法链接登录'}
+          </button>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />

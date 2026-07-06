@@ -8,6 +8,28 @@ import { Plus, Loader2, Sparkles, Mic, Check, X, Bot } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: {
+    [index: number]: {
+      [index: number]: { transcript: string };
+      isFinal: boolean;
+    };
+    length: number;
+  };
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+}
+
 interface QuickAddProps {
   onTaskCreated: () => void;
 }
@@ -111,8 +133,8 @@ export function QuickAdd({ onTaskCreated }: QuickAddProps) {
       return;
     }
 
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI() as SpeechRecognition;
     recognition.lang = 'zh-CN';
     recognition.interimResults = false;
     recognition.continuous = false;

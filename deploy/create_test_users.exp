@@ -1,0 +1,44 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "cd /var/www/rixin && mkdir -p scripts\r"
+
+expect -re {\$ |# }
+send "cat > scripts/generate-test-users.js << 'EOF'\r"
+send "const { createClient } = require('@supabase/supabase-js');\r"
+send "const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;\r"
+send "const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;\r"
+send "if (!supabaseUrl || !supabaseServiceKey) { console.error('Missing env vars'); process.exit(1); }\r"
+send "const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });\r"
+send "const users = [{ email: 'test1@rixin.dev', password: 'Test@123456', name: '测试用户一' }, { email: 'test2@rixin.dev', password: 'Test@123456', name: '测试用户二' }];\r"
+send "async function create(u) {\r"
+send "  try {\r"
+send "    const { data, error } = await supabase.auth.admin.createUser({ email: u.email, password: u.password, email_confirm: true, user_metadata: { full_name: u.name } });\r"
+send "    if (error) { console.log(error.message.includes('duplicate') ? 'Exists: '+u.email : 'Error: '+error.message); return; }\r"
+send "    console.log('Created: '+u.email);\r"
+send "    await supabase.from('profiles').insert({ id: data.user.id, name: u.name }).catch(()=>{});\r"
+send "  } catch(e) { console.log('Failed: '+u.email); }\r"
+send "}\r"
+send "(async () => { for (const u of users) { await create(u); } })();\r"
+send "EOF\r"
+
+expect -re {\$ |# }
+send "node scripts/generate-test-users.js 2>&1\r"
+
+expect {
+    "Created" { }
+    "Exists" { }
+    "Error" { }
+    timeout { }
+}
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

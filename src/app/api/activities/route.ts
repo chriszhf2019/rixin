@@ -42,7 +42,31 @@ export async function GET() {
     .order('date', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+
+  // Fetch tasks for each activity
+  const activitiesWithTasks = await Promise.all(
+    (data || []).map(async (activity: any) => {
+      const { data: tasks, error: tasksError } = await serviceSupabase
+        .from('tasks')
+        .select('*')
+        .eq('activity_id', activity.id)
+        .order('sort_order');
+
+      if (tasksError) {
+        return { ...activity, tasks: [], has_blocker: false, blocker_count: 0 };
+      }
+
+      const blockerCount = tasks?.filter((t: any) => t.blocker_reason).length || 0;
+      return {
+        ...activity,
+        tasks: tasks || [],
+        has_blocker: blockerCount > 0,
+        blocker_count: blockerCount,
+      };
+    })
+  );
+
+  return NextResponse.json(activitiesWithTasks);
 }
 
 export async function POST(request: Request) {

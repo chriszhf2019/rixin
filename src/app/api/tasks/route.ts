@@ -11,6 +11,7 @@ const CreateTaskSchema = z.object({
   blocker_reason: z.enum(['too_complex', 'time_conflict', 'procrastination']).nullable().optional(),
   due_date: z.string().nullable().optional(),
   weekly_plan_id: z.string().uuid().nullable().optional(),
+  activity_id: z.string().uuid().nullable().optional(),
   assignee_id: z.string().uuid().nullable().optional(),
   sort_order: z.number().int().default(0),
   subtasks: z.array(z.object({

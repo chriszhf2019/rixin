@@ -51,6 +51,7 @@ export interface Task {
   id: string;
   user_id: string;
   weekly_plan_id: string | null;
+  activity_id: string | null;
   title: string;
   description: string | null;
   due_date: string | null;
@@ -107,6 +108,7 @@ export interface Reminder {
 
 export interface TeamActivity {
   id: string;
+  user_id: string;
   title: string;
   description: string | null;
   date: string;
@@ -117,6 +119,9 @@ export interface TeamActivity {
   updated_at: string;
   members?: ActivityMember[];
   organizer?: Profile;
+  tasks?: Task[];
+  has_blocker: boolean;
+  blocker_count: number;
 }
 
 export interface ActivityMember {

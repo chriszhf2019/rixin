@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ActivityCard } from './ActivityCard';
+import { ActivityKanban } from './ActivityKanban';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,13 +11,19 @@ import { Loader2, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TeamActivity } from '@/types';
 
-export function ActivityBoard() {
+interface ActivityBoardProps {
+  selectedActivity: string | null;
+  onSelectActivity: (id: string | null) => void;
+}
+
+export function ActivityBoard({ selectedActivity, onSelectActivity }: ActivityBoardProps) {
   const [activities, setActivities] = useState<TeamActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', date: '', location: '' });
 
   const fetchActivities = async () => {
+    setLoading(true);
     const res = await fetch('/api/activities');
     if (res.ok) {
       const data = await res.json();
@@ -52,6 +59,19 @@ export function ActivityBoard() {
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
+  if (selectedActivity) {
+    const activity = activities.find(a => a.id === selectedActivity);
+    if (!activity) return null;
+    return (
+      <div>
+        <Button variant="ghost" className="mb-4" onClick={() => onSelectActivity(null)}>
+          ← 返回活动列表
+        </Button>
+        <ActivityKanban activity={activity} onUpdate={fetchActivities} onClose={() => onSelectActivity(null)} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -82,7 +102,12 @@ export function ActivityBoard() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {activities.map(a => (
-            <ActivityCard key={a.id} activity={a} onUpdate={fetchActivities} />
+            <ActivityCard 
+              key={a.id} 
+              activity={a} 
+              onUpdate={fetchActivities}
+              onClick={() => onSelectActivity(a.id)}
+            />
           ))}
         </div>
       )}

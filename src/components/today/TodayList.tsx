@@ -274,9 +274,15 @@ export function TodayList({ refreshKey }: { refreshKey: number }) {
 
       {/* Task list */}
       <div className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          今日待办 ({total - completed})
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            今日待办 ({total - completed})
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            🎯 {tasks.filter(t => t.task_type === 'objective' && t.status !== 'done').length} 目标 · 
+            📋 {tasks.filter(t => t.task_type !== 'objective' && t.status !== 'done').length} 琐事
+          </span>
+        </div>
         <div className="relative">
           <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -289,9 +295,34 @@ export function TodayList({ refreshKey }: { refreshKey: number }) {
             className="pl-10"
           />
         </div>
-        {tasks.filter(t => t.status !== 'done').map((task) => (
-          <TaskCard key={task.id} task={task} onToggle={handleToggle} onUpdate={() => fetchData()} />
-        ))}
+
+        {/* Objective tasks */}
+        {tasks.filter(t => t.task_type === 'objective' && t.status !== 'done').length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-medium">目标推进</h3>
+            </div>
+            {tasks.filter(t => t.task_type === 'objective' && t.status !== 'done').map((task) => (
+              <TaskCard key={task.id} task={task} onToggle={handleToggle} onUpdate={() => fetchData()} />
+            ))}
+          </div>
+        )}
+
+        {/* Inbox/Routine tasks */}
+        {tasks.filter(t => t.task_type !== 'objective' && t.status !== 'done').length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium">日常琐事</h3>
+            </div>
+            {tasks.filter(t => t.task_type !== 'objective' && t.status !== 'done').map((task) => (
+              <TaskCard key={task.id} task={task} onToggle={handleToggle} onUpdate={() => fetchData()} />
+            ))}
+          </div>
+        )}
+
+        {/* Completed tasks */}
         {tasks.filter(t => t.status === 'done').length > 0 && (
           <>
             <h2 className="text-sm font-medium text-muted-foreground pt-4">已完成</h2>
@@ -300,6 +331,7 @@ export function TodayList({ refreshKey }: { refreshKey: number }) {
             ))}
           </>
         )}
+
         {tasks.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-100 to-amber-100 dark:from-indigo-900/30 dark:to-amber-900/30 flex items-center justify-center">

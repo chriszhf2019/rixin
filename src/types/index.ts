@@ -56,6 +56,8 @@ export interface Task {
   due_date: string | null;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'todo' | 'in_progress' | 'done' | 'cancelled';
+  task_type: 'objective' | 'inbox' | 'routine';
+  blocker_reason: 'too_complex' | 'time_conflict' | 'procrastination' | null;
   assignee_id: string | null;
   sort_order: number;
   completed_at: string | null;

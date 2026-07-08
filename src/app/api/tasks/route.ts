@@ -7,6 +7,8 @@ const CreateTaskSchema = z.object({
   description: z.string().nullable().optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   status: z.enum(['todo', 'in_progress', 'done', 'cancelled']).default('todo'),
+  task_type: z.enum(['objective', 'inbox', 'routine']).default('inbox'),
+  blocker_reason: z.enum(['too_complex', 'time_conflict', 'procrastination']).nullable().optional(),
   due_date: z.string().nullable().optional(),
   weekly_plan_id: z.string().uuid().nullable().optional(),
   assignee_id: z.string().uuid().nullable().optional(),

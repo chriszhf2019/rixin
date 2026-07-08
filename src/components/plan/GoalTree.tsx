@@ -120,7 +120,7 @@ export function GoalTree() {
           <p className="text-sm mt-1">创建你的第一个目标，开始规划</p>
         </div>
       ) : (
-        goals.map((goal) => <GoalCard key={goal.id} goal={goal} />)
+        goals.map((goal) => <GoalCard key={goal.id} goal={goal} onRefresh={fetchGoals} />)
       )}
     </div>
   );

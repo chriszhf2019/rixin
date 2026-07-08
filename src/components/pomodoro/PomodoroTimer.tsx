@@ -12,13 +12,17 @@ import type { Task } from '@/types';
 const FOCUS_TIME = 25;
 const BREAK_TIME = 5;
 
-export function PomodoroTimer() {
+interface PomodoroTimerProps {
+  initialTaskId?: string;
+}
+
+export function PomodoroTimer({ initialTaskId }: PomodoroTimerProps) {
   const supabase = createClient();
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
   const [timeLeft, setTimeLeft] = useState(FOCUS_TIME * 60);
   const [running, setRunning] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(initialTaskId || '');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [todayFocus, setTodayFocus] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

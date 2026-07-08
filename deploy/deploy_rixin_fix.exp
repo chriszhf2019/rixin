@@ -1,0 +1,39 @@
+#!/usr/bin/expect -f
+set timeout 600
+
+# Sync source code to server
+spawn rsync -avz --delete \
+  --exclude='node_modules' \
+  --exclude='.next' \
+  --exclude='.git' \
+  --exclude='.env.local' \
+  /Volumes/z/202606/Rixin/ \
+  ubuntu@118.25.141.173:/var/www/rixin/
+
+expect {
+    "password:" { send "Chris@1989\r"; exp_continue }
+    eof
+}
+
+# Run build and restart on server
+spawn ssh -o StrictHostKeyChecking=no ubuntu@118.25.141.173
+
+expect "password:"
+send "Chris@1989\r"
+
+expect "$"
+send "cd /var/www/rixin && grep -q SUPABASE_SERVICE_ROLE_KEY .env.local || echo 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZXduZmdoend2dXZvenNrZGFvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzIzNTk4MywiZXhwIjoyMDk4ODExOTgzfQ.lSUKZqvbu9VjaXqo5Zajdp_EzTxch2v_RNUdnEP4M2A' >> .env.local && echo 'env updated'\r"
+
+expect "$"
+send "cd /var/www/rixin && npm install && npm run build 2>&1 | tail -20\r"
+
+expect "$"
+send "cd /var/www/rixin && pm2 restart ecosystem.config.js --update-env 2>&1 || pm2 start ecosystem.config.js 2>&1\r"
+
+expect "$"
+send "sleep 5 && curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/login && echo ' - server status'\r"
+
+expect "$"
+send "echo '=== DONE ==='\r"
+
+expect eof

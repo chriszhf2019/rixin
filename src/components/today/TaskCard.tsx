@@ -8,7 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { PRIORITY_CONFIG } from '@/types';
 import type { Task } from '@/types';
 import { formatDate } from '@/lib/utils';
-import { Calendar, MessageSquare, Bell, Target, AlertCircle } from 'lucide-react';
+import { Calendar, MessageSquare, Bell, Target, AlertCircle, Timer } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { TaskComments } from './TaskComments';
 import { TaskReminders } from './TaskReminders';
@@ -30,7 +31,8 @@ export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
   const isDone = task.status === 'done';
 
   return (
-    <div className={cn('group flex items-start gap-3 p-3 rounded-lg border bg-card hover:shadow-sm transition-all', isDone && 'opacity-60')}>
+    <div className={cn('group flex items-start gap-3 p-3 rounded-lg border hover:shadow-sm transition-all', 
+      isDone ? 'opacity-60 border-muted bg-card' : `${priority.border} ${priority.bg}`)}>
       <Checkbox
         checked={isDone}
         onCheckedChange={(checked) => onToggle(task.id, checked as boolean)}
@@ -38,10 +40,10 @@ export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={cn('text-sm font-medium', isDone && 'line-through text-muted-foreground')}>
+          <span className={cn('text-sm', isDone ? 'line-through text-muted-foreground font-normal' : 'font-semibold')}>
             {task.title}
           </span>
-          <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0', priority.color)}>
+          <Badge className={cn('text-[10px] px-1.5 py-0 font-medium', priority.color, priority.badgeBg, priority.badgeBorder, 'border')}>
             {priority.label}
           </Badge>
         </div>
@@ -73,6 +75,17 @@ export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
           <span className="text-xs text-red-500 flex items-center gap-0.5" title="已过期">
             <AlertCircle className="h-3 w-3" />
           </span>
+        )}
+        {!isDone && (
+          <Link 
+            href={`/focus?task=${task.id}`}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            title="开始专注"
+          >
+            <span className="text-xs text-indigo-500 flex items-center gap-0.5">
+              <Timer className="h-3 w-3" />
+            </span>
+          </Link>
         )}
         <Dialog>
           <DialogTrigger asChild>

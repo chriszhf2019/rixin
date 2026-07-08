@@ -1,0 +1,17 @@
+#!/usr/bin/expect -f
+set timeout 600
+
+# Upload deploy script
+spawn scp -o StrictHostKeyChecking=no deploy/fix_team_activities.sh ubuntu@118.25.141.173:/tmp/
+expect {
+    "password:" { send "Chris@1989\r"; exp_continue }
+    eof
+}
+
+# Run deploy script with service role key as argument
+spawn ssh -o StrictHostKeyChecking=no ubuntu@118.25.141.173 "chmod +x /tmp/fix_team_activities.sh && bash /tmp/fix_team_activities.sh 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZXduZmdoend2dXZvenNrZGFvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzIzNTk4MywiZXhwIjoyMDk4ODExOTgzfQ.lSUKZqvbu9VjaXqo5Zajdp_EzTxch2v_RNUdnEP4M2A'"
+expect {
+    "password:" { send "Chris@1989\r"; exp_continue }
+    -re "DONE" { puts "\n=== Deploy complete ==="; exp_continue }
+    eof
+}

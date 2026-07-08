@@ -1,0 +1,42 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+
+# Sync source files to server
+spawn rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.git' --exclude '.env.local' /Volumes/z/202606/Rixin/ ubuntu@118.25.141.173:/var/www/rixin/
+expect "password:"
+send "Chris@1989\r"
+expect eof
+
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "cd /var/www/rixin && sudo npm uninstall ai @ai-sdk/openai 2>/dev/null; sudo npm run build 2>&1 | tail -20\r"
+
+expect {
+    "prerendered as static content" {
+        puts "\n=== BUILD SUCCESS ==="
+    }
+    "Failed to compile" {
+        puts "\n=== BUILD FAILED ==="
+    }
+    timeout {
+        puts "\n=== BUILD TIMEOUT ==="
+    }
+}
+
+expect -re {\$ |# }
+send "sudo pm2 restart rixin --update-env 2>&1\r"
+
+expect -re {\$ |# }
+send "sleep 5 && echo DONE\r"
+
+expect "DONE"
+puts "\n=== DEPLOY COMPLETE ==="
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

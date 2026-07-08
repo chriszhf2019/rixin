@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { ActivityCard } from './ActivityCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,23 +11,17 @@ import { toast } from 'sonner';
 import type { TeamActivity } from '@/types';
 
 export function ActivityBoard() {
-  const supabase = createClient();
   const [activities, setActivities] = useState<TeamActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', date: '', location: '' });
 
   const fetchActivities = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from('team_activities')
-      .select('*, organizer:profiles!organizer_id(id, name, avatar_url), members:activity_members(*, user:profiles(id, name, avatar_url))')
-      .or(`organizer_id.eq.${user.id},members.user_id.eq.${user.id}`)
-      .order('date', { ascending: false });
-
-    if (data) setActivities(data as unknown as TeamActivity[]);
+    const res = await fetch('/api/activities');
+    if (res.ok) {
+      const data = await res.json();
+      setActivities(data);
+    }
     setLoading(false);
   };
 
@@ -52,7 +45,8 @@ export function ActivityBoard() {
       setOpen(false);
       fetchActivities();
     } else {
-      toast.error('创建失败');
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.error || '创建失败');
     }
   };
 

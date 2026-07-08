@@ -151,10 +151,10 @@ export interface Review {
 
 // Shared constants
 export const PRIORITY_CONFIG = {
-  urgent: { label: '紧急', color: 'text-red-600', bg: 'bg-red-50' },
-  high: { label: '高', color: 'text-orange-600', bg: 'bg-orange-50' },
-  medium: { label: '中', color: 'text-blue-600', bg: 'bg-blue-50' },
-  low: { label: '低', color: 'text-gray-600', bg: 'bg-gray-50' },
+  urgent: { label: '紧急', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200 dark:border-red-800', badgeBg: 'bg-red-100 dark:bg-red-900/30', badgeBorder: 'border-red-300 dark:border-red-700' },
+  high: { label: '高', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200 dark:border-orange-800', badgeBg: 'bg-orange-100 dark:bg-orange-900/30', badgeBorder: 'border-orange-300 dark:border-orange-700' },
+  medium: { label: '中', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200 dark:border-blue-800', badgeBg: 'bg-blue-100 dark:bg-blue-900/30', badgeBorder: 'border-blue-300 dark:border-blue-700' },
+  low: { label: '低', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200 dark:border-gray-700', badgeBg: 'bg-gray-100 dark:bg-gray-800', badgeBorder: 'border-gray-300 dark:border-gray-600' },
 } as const;
 
 export const STATUS_CONFIG = {

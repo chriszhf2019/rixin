@@ -1,0 +1,29 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+
+spawn scp /Volumes/z/202606/Rixin/deploy/fix_ai_v2.sh ubuntu@118.25.141.173:/tmp/
+expect "password:"
+send "Chris@1989\r"
+expect eof
+
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "sudo bash /tmp/fix_ai_v2.sh 2>&1\r"
+
+expect {
+    "DONE" {
+        puts "\n=== AI FIX V2 DEPLOY COMPLETE ==="
+    }
+    timeout {
+        puts "\n=== TIMEOUT ==="
+    }
+}
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

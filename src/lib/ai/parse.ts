@@ -1,6 +1,5 @@
-import { generateObject } from 'ai';
-import { chatModel } from './model';
 import { z } from 'zod';
+import { callDeepSeekAPI } from './deepseek';
 
 const TaskParseSchema = z.object({
   title: z.string().describe('任务标题'),
@@ -15,30 +14,38 @@ const TaskParseSchema = z.object({
 export type ParsedTask = z.infer<typeof TaskParseSchema>;
 
 export async function parseTaskText(text: string): Promise<ParsedTask> {
-  const { object } = await generateObject({
-    model: chatModel,
-    schema: TaskParseSchema,
-    system: `你是一个智能待办解析助手。用户会用自然语言输入任务，你需要提取结构化信息。
+  const systemPrompt = `你是一个智能待办解析助手。用户会用自然语言输入任务，你需要提取结构化信息。
       规则：
       - 时间表述："明天"、"后天"、"下周一"等相对时间，基于当前日期 ${new Date().toISOString().split('T')[0]} 转为具体日期
       - 优先级：紧急事件用"urgent"，重要用"high"，普通用"medium"，小事用"low"
       - 如果有多个事项，创建主任务并将其他事项作为子任务
       - 标签从内容中推断（如"工作"、"个人"、"购物"、"学习"等）
-      - 如果内容明显包含团队协作（"跟XX一起"、"团队"、"开会"），在标签中包含"协作"`,
-    prompt: text,
-  });
+      - 如果内容明显包含团队协作（"跟XX一起"、"团队"、"开会"），在标签中包含"协作"
+      
+      请直接返回 JSON 对象，不要包含任何额外文字或 markdown 格式。`;
 
-  return object;
+  try {
+    const result = await callDeepSeekAPI(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text },
+      ],
+      { temperature: 0.3, maxTokens: 800 }
+    );
+
+    const jsonStr = result.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    const parsed = JSON.parse(jsonStr);
+    return TaskParseSchema.parse(parsed);
+  } catch (e) {
+    return fallbackParse(text);
+  }
 }
 
-// Fallback parser for when AI is unavailable
 export function fallbackParse(text: string): ParsedTask {
-  // Simple keyword-based parsing
   const now = new Date();
   let dueDate: string | undefined;
   const title = text;
 
-  // Very basic date detection
   const relativeDays: Record<string, number> = {
     '今天': 0, '今天内': 0, '今晚': 0,
     '明天': 1, '明天内': 1, '明晚': 1,

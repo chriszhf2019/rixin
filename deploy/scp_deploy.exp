@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+
+# Upload all the needed source files
+spawn bash -c "cd /Volumes/z/202606/Rixin && tar czf /tmp/rixin_src.tar.gz \
+  src/lib/ai/deepseek.ts \
+  src/lib/ai/analyze.ts \
+  src/lib/ai/digest.ts \
+  src/lib/ai/parse.ts \
+  src/components/layout/NotificationPrompt.tsx \
+  src/components/ui/dialog.tsx \
+  src/app/api/tasks/\[id\]/route.ts \
+  && scp /tmp/rixin_src.tar.gz ubuntu@118.25.141.173:/tmp/"
+expect "password:"
+send "Chris@1989\r"
+expect eof
+
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "cd /var/www/rixin && sudo tar xzf /tmp/rixin_src.tar.gz && sudo rm -f src/lib/ai/model.ts && sudo npm uninstall ai @ai-sdk/openai 2>/dev/null; sudo npm run build 2>&1 | tail -15\r"
+
+expect {
+    "prerendered as static content" {
+        puts "\n=== BUILD SUCCESS ==="
+    }
+    "Failed to compile" {
+        puts "\n=== BUILD FAILED ==="
+    }
+    timeout {
+        puts "\n=== BUILD TIMEOUT ==="
+    }
+}
+
+expect -re {\$ |# }
+send "sudo pm2 restart rixin --update-env 2>&1\r"
+
+expect -re {\$ |# }
+send "sleep 5 && echo DEPLOY_DONE\r"
+
+expect "DEPLOY_DONE"
+puts "\n=== DEPLOY COMPLETE ==="
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

@@ -3,8 +3,12 @@
 import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { StatsDashboard } from '@/components/stats/StatsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSearchParams } from 'next/navigation';
 
 export default function FocusPage() {
+  const searchParams = useSearchParams();
+  const taskId = searchParams.get('task');
+  
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
       <div className="mb-6">
@@ -18,7 +22,7 @@ export default function FocusPage() {
           <TabsTrigger value="stats">数据看板</TabsTrigger>
         </TabsList>
         <TabsContent value="pomodoro">
-          <PomodoroTimer />
+          <PomodoroTimer initialTaskId={taskId || undefined} />
         </TabsContent>
         <TabsContent value="stats">
           <StatsDashboard />

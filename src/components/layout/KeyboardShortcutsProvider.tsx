@@ -1,15 +1,48 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Command, ArrowRight, Keyboard } from 'lucide-react';
 
 interface KeyboardShortcutsProviderProps {
   children: React.ReactNode;
 }
 
+interface Shortcut {
+  keys: string[];
+  description: string;
+  category: string;
+}
+
+const SHORTCUTS: Shortcut[] = [
+  { keys: ['N'], description: '快速添加任务', category: '任务操作' },
+  { keys: ['1'], description: '跳转到今日', category: '导航' },
+  { keys: ['2'], description: '跳转到规划', category: '导航' },
+  { keys: ['3'], description: '跳转到团队', category: '导航' },
+  { keys: ['4'], description: '跳转到专注', category: '导航' },
+  { keys: ['5'], description: '跳转到复盘', category: '导航' },
+  { keys: ['6'], description: '跳转到助手', category: '导航' },
+  { keys: ['Ctrl/Cmd', 'T'], description: '跳转到今日', category: '导航' },
+  { keys: ['Ctrl/Cmd', 'P'], description: '跳转到规划', category: '导航' },
+  { keys: ['Ctrl/Cmd', 'F'], description: '跳转到专注', category: '导航' },
+  { keys: ['Ctrl/Cmd', 'R'], description: '跳转到复盘', category: '导航' },
+  { keys: ['Ctrl/Cmd', 'A'], description: '跳转到助手', category: '导航' },
+  { keys: ['Ctrl/Cmd', 'K'], description: '打开快捷键面板', category: '系统' },
+  { keys: ['Tab'], description: '切换标签页', category: '导航' },
+  { keys: ['Shift', 'Tab'], description: '切换标签页（反向）', category: '导航' },
+];
+
 export function KeyboardShortcutsProvider({ children }: KeyboardShortcutsProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const target = e.target as HTMLElement;
@@ -18,7 +51,16 @@ export function KeyboardShortcutsProvider({ children }: KeyboardShortcutsProvide
 
     if (isInputFocused || isEditable) return;
 
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      setShowShortcuts(true);
+      return;
+    }
+
     switch (e.key.toLowerCase()) {
+      case 'escape':
+        setShowShortcuts(false);
+        break;
       case 'n':
         e.preventDefault();
         const quickInput = document.querySelector<HTMLInputElement>('#quick-add-input');
@@ -113,5 +155,64 @@ export function KeyboardShortcutsProvider({ children }: KeyboardShortcutsProvide
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  return <>{children}</>;
+  const groupedShortcuts = SHORTCUTS.reduce((acc, shortcut) => {
+    if (!acc[shortcut.category]) {
+      acc[shortcut.category] = [];
+    }
+    acc[shortcut.category].push(shortcut);
+    return acc;
+  }, {} as Record<string, Shortcut[]>);
+
+  return (
+    <>
+      {children}
+      <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Keyboard className="h-5 w-5" />
+              快捷键面板
+            </DialogTitle>
+            <DialogDescription>
+              按下以下快捷键快速操作日新
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
+              <div key={category}>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2">{category}</h3>
+                <div className="space-y-2">
+                  {shortcuts.map((shortcut, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="text-sm">{shortcut.description}</span>
+                      <div className="flex items-center gap-1">
+                        {shortcut.keys.map((key, i) => (
+                          <span key={i}>
+                            {i > 0 && <ArrowRight className="h-3 w-3 text-muted-foreground mx-1" />}
+                            <kbd className="px-2 py-0.5 text-xs font-mono bg-muted rounded border border-border">
+                              {key}
+                            </kbd>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 pt-4 border-t text-center">
+            <p className="text-xs text-muted-foreground">
+              按 <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">Esc</kbd> 关闭面板
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

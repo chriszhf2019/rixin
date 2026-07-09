@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ListChecks, Target, BarChart3, Bot, LogOut, Settings, Users, Timer } from 'lucide-react';
+import { ListChecks, Target, BarChart3, Bot, LogOut, Settings, Users, Timer, Trophy, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,16 @@ import {
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import type { Profile } from '@/types';
+import { NotificationCenter } from './NotificationCenter';
 
 const NAV_ITEMS = [
   { href: '/today', label: '今日', icon: ListChecks },
+  { href: '/moment', label: '时刻', icon: Eye },
   { href: '/plan', label: '规划', icon: Target },
   { href: '/team', label: '团队', icon: Users },
   { href: '/focus', label: '专注', icon: Timer },
   { href: '/review', label: '复盘', icon: BarChart3 },
+  { href: '/achievements', label: '成就', icon: Trophy },
   { href: '/assistant', label: '助手', icon: Bot },
 ];
 
@@ -89,6 +92,12 @@ export function Sidebar() {
       </nav>
 
       <div className="p-3 border-t">
+        <div className="flex items-center justify-between mb-3">
+          <NotificationCenter />
+          <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start gap-3 px-2">

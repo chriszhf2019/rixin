@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { chatWithAI, analyzeTasks, splitTask, analyzeProcrastination, getEfficiencyProfile } from '@/lib/ai/analyze';
+import { chatWithAI, analyzeTasks, splitTask, analyzeProcrastination, getEfficiencyProfile, generateSmartSchedule } from '@/lib/ai/analyze';
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -11,15 +11,14 @@ export async function POST(request: Request) {
 
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('title, status, priority, created_at, completed_at, due_date')
+    .select('id, title, status, priority, created_at, completed_at, due_date, task_type')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(50);
 
   const { data: goals } = await supabase
     .from('goals')
-    .select('title, status')
-    .eq('user_id', user.id);
+    .select('title, status');
 
   const { data: sessions } = await supabase
     .from('focus_sessions')
@@ -52,6 +51,35 @@ export async function POST(request: Request) {
   if (action === 'efficiency_profile') {
     const result = await getEfficiencyProfile(tasks ?? [], sessions ?? []);
     return NextResponse.json({ reply: result });
+  }
+
+  if (action === 'prioritize') {
+    const todoTasks = (tasks ?? []).filter(t => t.status === 'todo' || t.status === 'in_progress');
+    const reply = await chatWithAI(
+      `帮我对以下任务按紧急重要原则排序，给出优先级建议：\n${todoTasks.map(t => `${t.title} - 优先级: ${t.priority} - 截止日期: ${t.due_date || '无'}`).join('\n')}`,
+      context
+    );
+    return NextResponse.json({ reply });
+  }
+
+  if (action === 'should_split') {
+    const pendingTasks = (tasks ?? []).filter(t => t.status !== 'done' && t.status !== 'cancelled');
+    const reply = await chatWithAI(
+      `分析以下任务，判断哪些需要拆分，并给出拆分建议：\n${pendingTasks.map(t => t.title).join('\n')}`,
+      context
+    );
+    return NextResponse.json({ reply });
+  }
+
+  if (action === 'schedule') {
+    const todoTasks = (tasks ?? []).filter(t => t.status === 'todo');
+    if (todoTasks.length === 0) {
+      return NextResponse.json({ reply: '当前没有待办任务，不需要排期。' });
+    }
+    const schedule = await generateSmartSchedule(
+      todoTasks.map(t => ({ id: t.id, title: t.title, priority: t.priority, status: t.status }))
+    );
+    return NextResponse.json({ reply: schedule.suggestion + '\n\n排期建议：\n' + schedule.schedule.map(s => `${s.startTime} - ${s.endTime}: ${s.taskTitle}`).join('\n') });
   }
 
   const reply = await chatWithAI(message, context);

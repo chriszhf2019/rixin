@@ -14,6 +14,14 @@ const CreateTaskSchema = z.object({
   activity_id: z.string().uuid().nullable().optional(),
   assignee_id: z.string().uuid().nullable().optional(),
   sort_order: z.number().int().default(0),
+  repeat_rule: z.object({
+    type: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+    interval: z.number().int().min(1).default(1),
+    weekdays: z.array(z.number().int().min(0).max(6)).optional(),
+    day_of_month: z.number().int().min(1).max(31).optional(),
+    end_date: z.string().nullable().optional(),
+    occurrences: z.number().int().min(1).optional(),
+  }).nullable().optional(),
   subtasks: z.array(z.object({
     title: z.string().min(1),
     sort_order: z.number().int().default(0),
@@ -33,7 +41,16 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('tasks')
-    .select('*, subtasks(*), tags(*), reminders(*), assignee:profiles!assignee_id(id, name, avatar_url)')
+    .select(`
+      *,
+      subtasks(*),
+      tags(*),
+      reminders(*),
+      assignee:profiles!assignee_id(id, name, avatar_url),
+      weekly_plan:weekly_plans!weekly_plan_id(id, title),
+      weekly_plan.monthly_plan:monthly_plans!monthly_plan_id(id, title),
+      weekly_plan.monthly_plan.goal:goals!goal_id(id, title)
+    `)
     .or(`user_id.eq.${user.id},assignee_id.eq.${user.id}`)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });

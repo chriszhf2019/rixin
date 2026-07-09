@@ -20,11 +20,14 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
-  { icon: '🪄', label: '帮我拆分今日核心任务', action: 'split_tasks' },
-  { icon: '📉', label: '分析我昨天的拖延原因', action: 'analyze_procrastination' },
-  { icon: '🎯', label: '检查今日任务是否偏离目标', action: 'check_goal_alignment' },
-  { icon: '💡', label: '生成今日行动建议', action: 'daily_suggestions' },
-  { icon: '📊', label: '查看我的效率画像', action: 'efficiency_profile' },
+  { icon: '🪄', label: '帮我拆分任务', action: 'split_task', description: '将复杂任务拆分为可执行步骤' },
+  { icon: '⏰', label: '今天时间不够，帮我排优先级', action: 'prioritize_tasks', description: '根据紧急重要原则排序' },
+  { icon: '📉', label: '分析我昨天的拖延原因', action: 'analyze_procrastination', description: 'AI诊断拖延模式' },
+  { icon: '🎯', label: '检查任务是否偏离目标', action: 'check_goal_alignment', description: '确保行动与目标一致' },
+  { icon: '💡', label: '生成今日行动建议', action: 'daily_suggestions', description: '基于数据的智能推荐' },
+  { icon: '📊', label: '查看我的效率画像', action: 'efficiency_profile', description: '黄金时段与模式分析' },
+  { icon: '🔮', label: '这个任务该不该拆', action: 'should_split', description: '判断任务复杂度' },
+  { icon: '✨', label: '智能排期', action: 'smart_schedule', description: '基于效率高峰安排任务' },
 ];
 
 export function ChatInterface() {
@@ -53,6 +56,12 @@ export function ChatInterface() {
         body.action = 'procrastination';
       } else if (action === 'efficiency_profile') {
         body.action = 'efficiency_profile';
+      } else if (action === 'prioritize_tasks') {
+        body.action = 'prioritize';
+      } else if (action === 'should_split') {
+        body.action = 'should_split';
+      } else if (action === 'smart_schedule') {
+        body.action = 'schedule';
       }
 
       const res = await fetch('/api/assistant', {

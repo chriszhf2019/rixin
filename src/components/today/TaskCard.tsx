@@ -8,20 +8,31 @@ import { Separator } from '@/components/ui/separator';
 import { PRIORITY_CONFIG } from '@/types';
 import type { Task } from '@/types';
 import { formatDate } from '@/lib/utils';
-import { Calendar, MessageSquare, Bell, Target, AlertCircle, Timer } from 'lucide-react';
+import { Calendar, MessageSquare, Bell, Target, AlertCircle, Timer, ChevronRight, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { TaskComments } from './TaskComments';
 import { TaskReminders } from './TaskReminders';
+import { BlockerDiagnosis } from '@/components/tasks/BlockerDiagnosis';
+import { ExperienceCardList } from '@/components/experience/ExperienceCardList';
 
-interface TaskCardProps {
-  task: Task;
-  onToggle: (id: string, done: boolean) => void;
-  onUpdate: (id: string, data: Partial<Task>) => void;
+interface TaskWithHierarchy extends Task {
+  weekly_plan?: {
+    id: string;
+    title: string;
+    monthly_plan?: {
+      id: string;
+      title: string;
+      goal?: {
+        id: string;
+        title: string;
+      };
+    };
+  };
 }
 
 interface TaskCardProps {
-  task: Task;
+  task: TaskWithHierarchy;
   onToggle: (id: string, done: boolean) => void;
   onUpdate: (id: string, data: Partial<Task>) => void;
 }
@@ -29,10 +40,43 @@ interface TaskCardProps {
 export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
   const priority = PRIORITY_CONFIG[task.priority];
   const isDone = task.status === 'done';
+  const isBlocked = !!task.blocker_reason;
+
+  const breadcrumbs: { label: string; type: string }[] = [];
+  if (task.weekly_plan?.monthly_plan?.goal) {
+    breadcrumbs.push({ label: task.weekly_plan.monthly_plan.goal.title, type: 'goal' });
+  }
+  if (task.weekly_plan?.monthly_plan) {
+    breadcrumbs.push({ label: task.weekly_plan.monthly_plan.title, type: 'monthly' });
+  }
+  if (task.weekly_plan) {
+    breadcrumbs.push({ label: task.weekly_plan.title, type: 'weekly' });
+  }
+
+  const blockerLabels: Record<string, string> = {
+    too_complex: '太复杂',
+    time_conflict: '时间冲突',
+    procrastination: '拖延中',
+  };
 
   return (
-    <div className={cn('group flex items-start gap-3 p-3 rounded-lg border hover:shadow-sm transition-all', 
-      isDone ? 'opacity-60 border-muted bg-card' : `${priority.border} ${priority.bg}`)}>
+    <div className={cn('group flex items-start gap-3 p-3 rounded-lg border hover:shadow-sm transition-all relative', 
+      isDone ? 'opacity-60 border-muted bg-card' : isBlocked ? 'border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/10' : `${priority.border} ${priority.bg}`)}>
+      {isBlocked && (
+        <div className="absolute -top-2 -right-2">
+          <BlockerDiagnosis
+            taskId={task.id}
+            taskTitle={task.title}
+            taskDescription={task.description}
+            blockerReason={task.blocker_reason}
+          >
+            <Badge className="cursor-pointer bg-amber-500 hover:bg-amber-600 text-white border-0 text-[10px] px-2 py-0.5">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {blockerLabels[task.blocker_reason!] || '卡点'}
+            </Badge>
+          </BlockerDiagnosis>
+        </div>
+      )}
       <Checkbox
         checked={isDone}
         onCheckedChange={(checked) => onToggle(task.id, checked as boolean)}
@@ -47,6 +91,17 @@ export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
             {priority.label}
           </Badge>
         </div>
+        {breadcrumbs.length > 0 && (
+          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground flex-wrap">
+            <Target className="h-3 w-3 text-primary" />
+            {breadcrumbs.map((crumb, index) => (
+              <span key={index}>
+                {index > 0 && <ChevronRight className="h-3 w-3 inline mx-0.5" />}
+                <span className="hover:text-primary cursor-pointer">{crumb.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
         {task.due_date && (
           <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
@@ -100,6 +155,20 @@ export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
             <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-1">
               {task.description && <p className="text-sm text-muted-foreground">{task.description}</p>}
 
+              {isBlocked && (
+                <BlockerDiagnosis
+                  taskId={task.id}
+                  taskTitle={task.title}
+                  taskDescription={task.description}
+                  blockerReason={task.blocker_reason}
+                >
+                  <Button variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    卡点诊断 - 帮我突破
+                  </Button>
+                </BlockerDiagnosis>
+              )}
+
               {task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done' && (
                 <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 dark:bg-red-950/20 rounded-md px-3 py-2">
                   <AlertCircle className="h-4 w-4" />
@@ -131,6 +200,12 @@ export function TaskCard({ task, onToggle, onUpdate }: TaskCardProps) {
               <Separator />
               <TaskReminders taskId={task.id} />
               <Separator />
+              {isDone && (
+                <>
+                  <ExperienceCardList taskId={task.id} taskTitle={task.title} compact />
+                  <Separator />
+                </>
+              )}
               <TaskComments taskId={task.id} />
             </div>
           </DialogContent>

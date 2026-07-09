@@ -1,0 +1,91 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+
+# Step 1: Sync source files to server
+spawn rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.git' --exclude '.env.local' --exclude 'logs' /Volumes/z/202606/Rixin/src/ ubuntu@118.25.141.173:/var/www/rixin/src/
+expect "password:"
+send "Chris@1989\r"
+expect eof
+
+# Step 2: SSH into server and build + restart
+spawn ssh ubuntu@118.25.141.173
+expect "password:"
+send "Chris@1989\r"
+
+expect -re {\$ |# }
+send "cd /var/www/rixin && sudo npm install @radix-ui/react-scroll-area 2>&1 | tail -5\r"
+
+expect {
+    "added" {
+        puts "\n=== DEPENDENCY INSTALLED ==="
+    }
+    "up to date" {
+        puts "\n=== DEPENDENCY UP TO DATE ==="
+    }
+    timeout {
+        puts "\n=== INSTALL TIMEOUT ==="
+    }
+}
+
+expect -re {\$ |# }
+send "sudo npm run build 2>&1 | tail -25\r"
+
+expect {
+    "Compiled successfully" {
+        puts "\n=== BUILD IN PROGRESS ==="
+    }
+    "Failed to compile" {
+        puts "\n=== BUILD FAILED ==="
+    }
+    timeout {
+        puts "\n=== BUILD TIMEOUT ==="
+    }
+}
+
+expect {
+    "Generating static pages" {
+        puts "\n=== GENERATING PAGES ==="
+    }
+    timeout {
+        puts "\n=== STILL BUILDING ==="
+    }
+}
+
+expect {
+    "prerendered as static content" {
+        puts "\n=== BUILD SUCCESS ==="
+    }
+    "Failed to compile" {
+        puts "\n=== BUILD FAILED ==="
+    }
+    timeout {
+        puts "\n=== BUILD TIMEOUT ==="
+    }
+}
+
+expect -re {\$ |# }
+send "sudo pm2 restart rixin --update-env 2>&1\r"
+
+expect -re {\$ |# }
+send "sleep 3 && echo RESTART_DONE\r"
+
+expect "RESTART_DONE"
+puts "\n=== PM2 RESTARTED ==="
+
+expect -re {\$ |# }
+send "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000\r"
+
+expect {
+    "200" {
+        puts "\n=== SERVER HEALTHY (200) ==="
+    }
+    timeout {
+        puts "\n=== HEALTH CHECK TIMEOUT ==="
+    }
+}
+
+expect -re {\$ |# }
+send "exit\r"
+
+expect eof

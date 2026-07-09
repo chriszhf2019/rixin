@@ -69,6 +69,10 @@ export interface Task {
   comments?: Comment[];
   reminders?: Reminder[];
   assignee?: Profile;
+  goal_title?: string;
+  monthly_plan_title?: string;
+  weekly_plan_title?: string;
+  repeat_rule?: RepeatRule;
 }
 
 export interface Subtask {
@@ -85,6 +89,15 @@ export interface Tag {
   user_id: string;
   name: string;
   color: string;
+}
+
+export interface RepeatRule {
+  type: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  weekdays?: number[];
+  day_of_month?: number;
+  end_date?: string;
+  occurrences?: number;
 }
 
 export interface Comment {
@@ -154,6 +167,63 @@ export interface Review {
   ai_summary: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ExperienceCard {
+  id: string;
+  user_id: string;
+  task_id: string | null;
+  title: string;
+  content: string;
+  category: 'lesson' | 'insight' | 'method' | 'resource';
+  tags: string[];
+  task_title?: string;
+  actual_minutes?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Achievement {
+  id: string;
+  user_id: string;
+  achievement_key: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'efficiency' | 'consistency' | 'growth' | 'collaboration';
+  level: number;
+  progress: number;
+  target: number;
+  unlocked: boolean;
+  unlocked_at: string | null;
+  created_at: string;
+}
+
+export interface EfficiencyProfile {
+  totalTasks: number;
+  completedTasks: number;
+  completionRate: number;
+  totalFocusMinutes: number;
+  averageFocusMinutes: number;
+  peakHours: number[];
+  mostProductiveDay: string;
+  avgCompletionTime: number;
+  streak: number;
+  longestStreak: number;
+}
+
+export interface TaskTemplate {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  use_count: number;
+  subtasks: { title: string; sort_order: number }[];
+  estimated_minutes: number;
+  created_at: string;
+  last_used_at: string | null;
 }
 
 // Shared constants

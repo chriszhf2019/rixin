@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Loader2, Sparkles, Mic, Check, X, Bot } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
@@ -30,10 +31,6 @@ interface SpeechRecognition extends EventTarget {
   onend: (() => void) | null;
 }
 
-interface QuickAddProps {
-  onTaskCreated: () => void;
-}
-
 interface ParsedResult {
   title: string;
   description?: string | null;
@@ -42,7 +39,8 @@ interface ParsedResult {
   subtasks?: { title: string; done: boolean }[];
 }
 
-export function QuickAdd({ onTaskCreated }: QuickAddProps) {
+export function QuickAdd() {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -106,7 +104,7 @@ export function QuickAdd({ onTaskCreated }: QuickAddProps) {
     });
     if (res.ok) {
       toast.success('任务已创建');
-      onTaskCreated();
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     } else {
       toast.error('创建失败');
     }

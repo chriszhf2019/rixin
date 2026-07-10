@@ -47,9 +47,7 @@ export async function GET(request: Request) {
       tags(*),
       reminders(*),
       assignee:profiles!assignee_id(id, name, avatar_url),
-      weekly_plan:weekly_plans!weekly_plan_id(id, title),
-      weekly_plan.monthly_plan:monthly_plans!monthly_plan_id(id, title),
-      weekly_plan.monthly_plan.goal:goals!goal_id(id, title)
+      weekly_plan:weekly_plans(id, title)
     `)
     .or(`user_id.eq.${user.id},assignee_id.eq.${user.id}`)
     .order('sort_order', { ascending: true })
